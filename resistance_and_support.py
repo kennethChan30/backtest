@@ -6,22 +6,13 @@ backtestpath = 'drive/MyDrive/Trading/backtest/'
 systemdata = backtestpath + 'Data/'
 systemoutput = backtestpath +  backtesttype
 rawdata = pd.read_csv(systemdata + timeframe + '.csv', names = ['date', 'time', 'open', 'high', 'low', 'close', 'volume'])
-price_high = [0,0,0,0,0,0,0,0,0,0]
-date_high = [0,0,0,0,0,0,0,0,0,0]
 pivot = []
-pivot_date = []
-count = 0
-for i in rawdata.index:
-  currentMax = max(price_high, default=0)
-  price_high = price_high[1:10]
-  date_high = price_high[1:10]
-  price_high.append(rawdata.loc[i]['high'])
-  date_high.append(rawdata.loc[i]['date'])
-  if currentMax == max(price_high, default=0):
-    count +=1
-  else:
-    count = 0
-  if count == 5:
-    x = price_high.index(currentMax)
-    pivot.append(price_high[x])
-    pivot_date.append(date_high[x])
+date = []
+
+for i in range(2, len(rawdata)-2):
+  if rawdata['high'][i-2]<rawdata['high'][i-1] and rawdata['high'][i-1]<rawdata['high'][i] and rawdata['high'][i+2]<rawdata['high'][i+1] and rawdata['high'][i+1]<rawdata['high'][i]:
+    pivot.append(rawdata.loc[i]['high'])
+    date.append(rawdata.loc[i]['date'])
+  if rawdata['low'][i-2]>rawdata['low'][i-1] and rawdata['low'][i-1]>rawdata['low'][i] and rawdata['low'][i+2]>rawdata['low'][i+1] and rawdata['low'][i+1]>rawdata['low'][i]:
+    pivot.append(rawdata.loc[i]['high'])
+    date.append(rawdata.loc[i]['date'])
