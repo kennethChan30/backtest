@@ -4,6 +4,7 @@ from datetime import time
 from datetime import datetime
 from datetime import timedelta
 import numpy as np
+from support_resistance_range import keyLevels
  
 def collecdata(start, end):
 #collect neccesary data up to time
@@ -12,7 +13,6 @@ def collecdata(start, end):
 #the average of fluacation of the price
 	ave = np.mean(data['high']-data['low'])
 	collection = {'bodyhigh': [], 'high': [], 'low': [], 'bodylow': []}
-
 	for i in range(0, len(data)):
 		collection['bodyhigh'].append(max(data['open'][i],data['close'][i]))
 		collection['high'].append(data['high'][i])
@@ -36,79 +36,23 @@ def key_levels():
 				if collection[bodypart][m] == min(collection[bodypart][m-2:m+3]):
 					levels[bodypart].append(collection[bodypart][m])
 		levels[bodypart] = sorted(levels[bodypart])	
-	print(levels)
+
 	for level, price in levels.items():
 		intertable = pd.DataFrame(price, columns = [level])
 		intertable['mean'] = round(intertable[level].rolling(nl, center=True).mean(), 2)
 		intertable['sd'] = intertable[level].rolling(nl, center=True).std()
 		intertable['sdmin'] = intertable['sd'].rolling(25, center=True).min()
-		print(intertable)
+
 		intertable[(intertable['sd'] == intertable['sdmin']) | (intertable['sd']>sp)].to_excel(level+'.xlsx', sheet_name='resistance', index=False)
 		levelsstate[level] = (intertable[(intertable['sd'] == intertable['sdmin']) | (intertable['sd']>sp)][level].values.tolist())
-		levelsstate[level].append(intertable[level].iloc[-(nl//2)])
-		levelsstate[level].append(intertable[level].iloc[-1])
-	print(levelsstate)
-	
-	# 	levelsstate[level] = {'No.': len(price), 'mean': np.median(price).round(decimals=2)}
-	# 	if len(price)>10:
-	# 		keylevels[np.median(price).round(decimals=2)] = len(price)
-	# keylevels[maxhigh] = 1
-	# return keylevels
+		for last in range(nl//2, 0, -1):
+			levelsstate[level].append(intertable[level].iloc[-last])
+	return levelsstate
 
-def findSandR(p):
-	bodypart = ['bodyhigh', 'high', 'low', 'bodylow']
-	nearlevels_count = {}
-	for part in bodypart:
-		xkeylevel = key_levels(part)
-		xprice = sorted(xkeylevel.keys())
 
-		for i in range(0,len(xprice)-1):
-			if xprice[i] < p and xprice[i+1] >  p:
-				for x in range(i-2, i+4):
-					try:
-						nearlevels_count[xprice[x]] = xkeylevel[xprice[x]]
-					except:
-						break
-				break
-	nearlevels = sorted(nearlevels_count.keys())
-	different = 3
-	sig_levels = []
-	sig_ranges = []
-	for l in range(0, len(nearlevels)):
-		h = l
-		lower = l
-		upper = l
-		while h < len(nearlevels) and nearlevels[h] - nearlevels[l] < different:
-			upper = h
-			h = h+1
-		if lower != upper:
-			if np.sum([upper ==level[1] for level in sig_levels]) == 0:
-				if sig_levels != [] and lower <= sig_levels[-1][1]:
-					if nearlevels[upper] - nearlevels[lower] < nearlevels[sig_levels[-1][1]] - nearlevels[sig_levels[-1][0]]:
-						sig_levels[-1] = [lower, upper]
 
-				else:
-					sig_levels.append([lower, upper])
-		else:
-			if (sig_levels == [] or lower != sig_levels[-1][1]):
-				sig_levels.append([lower, upper])
-	for l in sig_levels:
-		sig_ranges.append([nearlevels[l[0]], nearlevels[l[1]]])
 
-	return(sig_ranges)
 
-def support_level(p):
-	if rawdata30mins['past25'].iloc[0] > p:
-		sr = 0
-		while signifcant[sr][0] < p:
-			sr = sr+1
-		support = sr - 1
-	else:
-		sr = len(signifcant) - 1
-		while signifcant[sr][1] > p:
-			sr = sr-1
-		support = sr 
-	return support
 
 rawdata4hr = pd.read_csv('Data/4hr.csv', names = ['date', 'time', 'open', 'high', 'low', 'close', 'volume'])
 rawdata4hr['date'] = rawdata4hr['date'] + ' ' + rawdata4hr['time']
@@ -143,7 +87,9 @@ price = rawdata30mins['close'][0]
 
 nearlevels_count = {}
 
-key_levels()
+print(key_levels())
+print(keyLevels(start, end,rawdata4hr))
+
 # signifcant = findSandR(price)
 # support = support_level(price)
 
